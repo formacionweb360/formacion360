@@ -9,17 +9,19 @@ async function loadUsers() {
     const res = await fetch(SHEET_URL);
     if (!res.ok) throw new Error("Error al cargar el CSV de usuarios");
     const csv = await res.text();
+
     const lines = csv.trim().split(/\r?\n/).filter(l => l.trim() !== "");
     const headers = lines[0].split(",").map(h => h.trim());
     USERS_DATA = lines.slice(1).map(line => {
       const cells = line.split(",").map(c => c.trim().replace(/^"(.*)"$/, "$1"));
       let obj = {};
-      headers.forEach((h, i) => obj[h] = cells[i] || "");
+      headers.forEach((h, i) => obj[h.trim()] = cells[i] ? cells[i].trim() : "");
       return obj;
     });
-    console.log("Usuarios cargados:", USERS_DATA);
+
+    console.log("✅ Usuarios cargados:", USERS_DATA);
   } catch (err) {
-    console.error("Error al cargar usuarios:", err);
+    console.error("❌ Error al cargar usuarios:", err);
     alert("No se pudo cargar la lista de usuarios autorizados");
     throw err;
   }
@@ -44,25 +46,27 @@ function showLogin() {
   setTimeout(() => modal.classList.add('show'), 50);
 
   modal.querySelector('#login-btn').onclick = () => {
-    const usuario = modal.querySelector('#login-user').value.trim();
+    const usuario = modal.querySelector('#login-user').value.trim().toLowerCase();
     const pass = modal.querySelector('#login-pass').value.trim();
     const errorEl = modal.querySelector('#login-error');
     errorEl.classList.add('hidden');
 
-    const row = USERS_DATA.find(r => r["Usuario"] === usuario);
+    // Buscar usuario en CSV normalizando mayúsculas/minúsculas y espacios
+    const row = USERS_DATA.find(r => r["Usuario"].trim().toLowerCase() === usuario);
+
     if (!row) {
       errorEl.textContent = "❌ Usuario no encontrado";
       errorEl.classList.remove('hidden');
       return;
     }
 
-    if (row["Contraseña"] !== pass) {
+    if (row["Contraseña"].trim() !== pass) {
       errorEl.textContent = "❌ Contraseña incorrecta";
       errorEl.classList.remove('hidden');
       return;
     }
 
-    if (row["Estado"].toLowerCase() !== "activo") {
+    if (row["Estado"].trim().toLowerCase() !== "activo") {
       errorEl.textContent = "❌ Usuario inactivo";
       errorEl.classList.remove('hidden');
       return;
@@ -91,8 +95,11 @@ function initApp() {
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-800">👋 Bienvenido, ${user.nombre}</h1>
       <p class="text-gray-600 mt-1">Rol: ${user.rol} | Campaña: ${user.campaña}</p>
+      <button id="logout-btn" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">Cerrar sesión</button>
     </div>
   `;
+
+  document.getElementById('logout-btn').onclick = logout;
 }
 
 // Logout
@@ -108,5 +115,3 @@ loadUsers().then(() => {
   if (user) initApp();
   else showLogin();
 });
-
-document.getElementById('logout-btn').onclick = logout;
