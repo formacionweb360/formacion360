@@ -1,29 +1,31 @@
-// URL pública del CSV de usuarios
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTIgsZoBQjMmvl3iDq6GzMt0gvfyCxy5F7eCPZ6Q04YT52gKDiLQ5P9JflhA4zOFcrRRUjHqaDc08zA/pub?gid=0&single=true&output=csv";
+// Nueva función para enviar credenciales al backend de Google Apps Script
+async function validateCredentials(usuario, contrasena) {
+  // Reemplaza ESTA_URL con la URL de publicación de tu script de Google Apps Script
+  const BACKEND_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // <--- PON AQUÍ LA URL DE TU SCRIPT
 
-let USERS_DATA = [];
-
-// Cargar usuarios desde CSV
-async function loadUsers() {
   try {
-    const res = await fetch(SHEET_URL);
-    if (!res.ok) throw new Error("Error al cargar el CSV de usuarios");
-    const csv = await res.text();
-
-    const lines = csv.trim().split(/\r?\n/).filter(l => l.trim() !== "");
-    const headers = lines[0].split(",").map(h => h.trim());
-    USERS_DATA = lines.slice(1).map(line => {
-      const cells = line.split(",").map(c => c.trim().replace(/^"(.*)"$/, "$1"));
-      let obj = {};
-      headers.forEach((h, i) => obj[h.trim()] = cells[i] ? cells[i].trim() : "");
-      return obj;
+    const response = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        usuario: usuario,
+        contrasena: contrasena
+      })
     });
 
-    console.log("✅ Usuarios cargados:", USERS_DATA);
-  } catch (err) {
-    console.error("❌ Error al cargar usuarios:", err);
-    alert("No se pudo cargar la lista de usuarios autorizados");
-    throw err;
+    if (!response.ok) {
+      throw new Error(`Error de red o HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Respuesta del backend:", data);
+    return data; // Devuelve el objeto de respuesta del backend
+
+  } catch (error) {
+    console.error("Error al comunicarse con el backend:", error);
+    return { success: false, message: "Error de conexión con el servidor de autenticación." };
   }
 }
 
@@ -45,39 +47,27 @@ function showLogin() {
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('show'), 50);
 
-  modal.querySelector('#login-btn').onclick = () => {
-    const usuario = modal.querySelector('#login-user').value.trim().toLowerCase();
-    const pass = modal.querySelector('#login-pass').value.trim();
+  modal.querySelector('#login-btn').onclick = async () => { // Hacer la función onclick asincrónica
+    const usuario = modal.querySelector('#login-user').value.trim();
+    const contrasena = modal.querySelector('#login-pass').value.trim(); // Cambiar nombre de variable para claridad
     const errorEl = modal.querySelector('#login-error');
     errorEl.classList.add('hidden');
 
-    // Buscar usuario en CSV normalizando mayúsculas/minúsculas y espacios
-    const row = USERS_DATA.find(r => r["Usuario"].trim().toLowerCase() === usuario);
+    // Validar usando el backend
+    const result = await validateCredentials(usuario, contrasena);
 
-    if (!row) {
-      errorEl.textContent = "❌ Usuario no encontrado";
+    if (!result.success) {
+      errorEl.textContent = `❌ ${result.message}`;
       errorEl.classList.remove('hidden');
       return;
     }
 
-    if (row["Contraseña"].trim() !== pass) {
-      errorEl.textContent = "❌ Contraseña incorrecta";
-      errorEl.classList.remove('hidden');
-      return;
-    }
-
-    if (row["Estado"].trim().toLowerCase() !== "activo") {
-      errorEl.textContent = "❌ Usuario inactivo";
-      errorEl.classList.remove('hidden');
-      return;
-    }
-
-    // Guardar sesión
+    // Si el backend devuelve éxito, guardar sesión
     localStorage.setItem('currentUser', JSON.stringify({
-      usuario: row["Usuario"],
-      nombre: row["Nombre"],
-      rol: row["Rol"],
-      campaña: row["Campaña"]
+      usuario: result.usuario,
+      nombre: result.nombre,
+      rol: result.rol,
+      campaña: result.campaña
     }));
 
     modal.remove();
@@ -95,11 +85,8 @@ function initApp() {
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-800">👋 Bienvenido, ${user.nombre}</h1>
       <p class="text-gray-600 mt-1">Rol: ${user.rol} | Campaña: ${user.campaña}</p>
-      <button id="logout-btn" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">Cerrar sesión</button>
     </div>
   `;
-
-  document.getElementById('logout-btn').onclick = logout;
 }
 
 // Logout
@@ -110,8 +97,10 @@ function logout() {
 }
 
 // Ejecutar al cargar
-loadUsers().then(() => {
-  const user = localStorage.getItem('currentUser');
-  if (user) initApp();
-  else showLogin();
-});
+// Iniciar directamente con la lógica de login/sesión
+const user = localStorage.getItem('currentUser');
+if (user) initApp();
+else showLogin();
+
+// Asignar la función logout al botón (esto debería estar afuera del bloque de inicialización)
+document.getElementById('logout-btn').onclick = logout;
