@@ -1,34 +1,31 @@
-// 🔗 URL pública del Google Sheet como CSV
+// URL pública del CSV de usuarios
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTIgsZoBQjMmvl3iDq6GzMt0gvfyCxy5F7eCPZ6Q04YT52gKDiLQ5P9JflhA4zOFcrRRUjHqaDc08zA/pub?gid=0&single=true&output=csv";
+
 let USERS_DATA = [];
 
-// Cargar la tabla de usuarios desde el CSV
+// Cargar usuarios desde CSV
 async function loadUsers() {
   try {
     const res = await fetch(SHEET_URL);
     if (!res.ok) throw new Error("Error al cargar el CSV de usuarios");
     const csv = await res.text();
     const lines = csv.trim().split(/\r?\n/).filter(l => l.trim() !== "");
-    if (lines.length < 2) throw new Error("CSV de usuarios vacío o mal formateado");
-
     const headers = lines[0].split(",").map(h => h.trim());
     USERS_DATA = lines.slice(1).map(line => {
       const cells = line.split(",").map(c => c.trim().replace(/^"(.*)"$/, "$1"));
       let obj = {};
-      headers.forEach((h,i) => obj[h] = cells[i] || "");
+      headers.forEach((h, i) => obj[h] = cells[i] || "");
       return obj;
     });
-
-    console.log("✅ Usuarios cargados:", USERS_DATA);
-    return USERS_DATA;
+    console.log("Usuarios cargados:", USERS_DATA);
   } catch (err) {
-    console.error("❌ Error al cargar usuarios:", err);
+    console.error("Error al cargar usuarios:", err);
     alert("No se pudo cargar la lista de usuarios autorizados");
     throw err;
   }
 }
 
-// Mostrar el modal de login
+// Mostrar modal login
 function showLogin() {
   const modal = document.createElement('div');
   modal.className = 'login-modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4';
@@ -52,7 +49,6 @@ function showLogin() {
     const errorEl = modal.querySelector('#login-error');
     errorEl.classList.add('hidden');
 
-    // Buscar usuario
     const row = USERS_DATA.find(r => r["Usuario"] === usuario);
     if (!row) {
       errorEl.textContent = "❌ Usuario no encontrado";
@@ -72,7 +68,7 @@ function showLogin() {
       return;
     }
 
-    // Guardar sesión en localStorage
+    // Guardar sesión
     localStorage.setItem('currentUser', JSON.stringify({
       usuario: row["Usuario"],
       nombre: row["Nombre"],
@@ -85,16 +81,10 @@ function showLogin() {
   };
 }
 
-// Inicializar la app después de login
+// Inicializar app después de login
 function initApp() {
   const user = JSON.parse(localStorage.getItem('currentUser'));
-  if (!user) {
-    showLogin();
-    return;
-  }
-
-  document.getElementById('user-name').textContent = user.nombre;
-  document.getElementById('user-email-display').textContent = user.rol + " • " + user.campaña;
+  if (!user) { showLogin(); return; }
 
   const container = document.getElementById('app-container');
   container.innerHTML = `
@@ -105,14 +95,14 @@ function initApp() {
   `;
 }
 
-// Cerrar sesión
+// Logout
 function logout() {
   localStorage.removeItem('currentUser');
   document.getElementById('app-container').innerHTML = '';
   showLogin();
 }
 
-// Ejecutar todo al cargar
+// Ejecutar al cargar
 loadUsers().then(() => {
   const user = localStorage.getItem('currentUser');
   if (user) initApp();
@@ -120,8 +110,3 @@ loadUsers().then(() => {
 });
 
 document.getElementById('logout-btn').onclick = logout;
-document.getElementById('user-menu-btn').onclick = () => {
-  const menu = document.getElementById('user-menu');
-  menu.classList.toggle('hidden');
-  menu.classList.toggle('show');
-};
