@@ -1,7 +1,7 @@
 // Nueva función para enviar credenciales al backend de Google Apps Script
 async function validateCredentials(usuario, contrasena) {
   // Reemplaza ESTA_URL con la URL de publicación de tu script de Google Apps Script
-  const BACKEND_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; // <--- PON AQUÍ LA URL DE TU SCRIPT
+  const BACKEND_URL = "AKfycbwLTtDsoygsffAfKn26sefFsNq_64PA_VHbCwmczpuGQEa-T8Bt5KKcW840T9ZeY3l1"; // <--- PON AQUÍ LA URL DE TU SCRIPT
 
   try {
     const response = await fetch(BACKEND_URL, {
