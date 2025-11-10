@@ -1,4 +1,4 @@
-const apiUrl = "TU_WEB_APP_URL_AQUI"; // pega aquí el URL de tu Web App
+const apiUrl = "https://script.google.com/macros/s/AKfycbwLTtDsoygsffAfKn26sefFsNq_64PA_VHbCwmczpuGQEa-T8Bt5KKcW840T9ZeY3l1/exec"; // pega aquí el URL de tu Web App
 
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const usuario = document.getElementById('usuario').value;
