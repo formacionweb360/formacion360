@@ -1,31 +1,64 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Web360</title>
-
-  <!-- Archivo CSS compilado de Tailwind -->
-  <link href="output.css" rel="stylesheet">
-
-  <style>
-    body { font-family: 'Inter', sans-serif; background: #f8fafc; }
-    .login-modal { backdrop-filter: blur(8px); }
-    .login-modal-content { transform: scale(0.95); opacity: 0; transition: all 0.3s ease; }
-    .login-modal.show .login-modal-content { transform: scale(1); opacity: 1; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login con Supabase</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white p-8 rounded-2xl shadow-lg w-96">
+    <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Iniciar sesión</h1>
+    
+    <div class="space-y-4">
+      <input id="usuario" type="text" placeholder="Usuario"
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      
+      <input id="contrasena" type="password" placeholder="Contraseña"
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      
+      <button onclick="login()"
+        class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">
+        Entrar
+      </button>
 
-  <!-- Contenedor app -->
-  <div id="app-container" class="w-full max-w-md mx-auto"></div>
+      <p id="mensaje" class="text-center mt-3 text-sm text-gray-600"></p>
+    </div>
+  </div>
 
-  <!-- Botón menú y logout (simulados) -->
-  <div id="user-menu" class="hidden"></div>
-  <button id="logout-btn" class="hidden">Logout</button>
-  <button id="user-menu-btn" class="hidden">Menu</button>
+  <script>
+    // 🧩 CONFIGURA TUS DATOS DE SUPABASE AQUÍ
+    const SUPABASE_URL = 'https://brazwbyfwcafscpfqhqf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyYXp3Ynlmd2NhZnNjcGZxaHFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3OTY0NjIsImV4cCI6MjA3ODM3MjQ2Mn0._rvVLjpv1hCqGL-ptDVD3IYohavdh8ax4S8PZ1Q7UYQ';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  <!-- Script principal -->
-  <script src="script.js"></script>
+    async function login() {
+      const usuario = document.getElementById('usuario').value.trim();
+      const contrasena = document.getElementById('contrasena').value.trim();
+      const msg = document.getElementById('mensaje');
+      msg.textContent = "Verificando...";
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('usuario', usuario)
+        .eq('contrasena', contrasena)
+        .eq('estado', 'Activo')
+        .single();
+
+      if (error || !data) {
+        msg.textContent = "❌ Usuario o contraseña incorrectos";
+        msg.className = "text-center mt-3 text-sm text-red-600";
+        return;
+      }
+
+      msg.textContent = `✅ Bienvenido ${data.nombre} (${data.rol})`;
+      msg.className = "text-center mt-3 text-sm text-green-600";
+
+      // Aquí podrías redirigir al dashboard según el rol:
+      // if (data.rol === 'Administrador') window.location.href = 'admin.html';
+    }
+  </script>
 </body>
 </html>
